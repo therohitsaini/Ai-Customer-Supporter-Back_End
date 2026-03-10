@@ -1,11 +1,13 @@
+import mongoose from "mongoose";
 import pdf from "pdf-parse";
 import Knowledge from "../modal/knowledgeSchema.js";
 import OpenAI from "openai";
 import axios from "axios";
 import dotenv from "dotenv";
+import ChatList from "../modal/chatList.js";
+
 dotenv.config();
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
 export const uploadPDF = async (req, res) => {
@@ -45,15 +47,32 @@ export const uploadPDF = async (req, res) => {
 export const askQuestion = async (req, res) => {
     try {
         const { userId } = req.params;
-        const { question } = req.body;
-        console.log("Received question:", question);
+        const { question, user } = req.body;
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ answer: "Invalid user ID." });
+        }
 
         if (!question) {
             return res.status(400).json({ answer: "Question is required." });
         }
-
+        if (user) {
+            const userInfo_ = await ChatList.findOne({ email: user });
+            if (!userInfo_) {
+                await ChatList.create(
+                    {
+                        partnerId: userId,
+                        email: user,
+                        password: "defaultpassword",
+                        lastMessage: question
+                    }
+                );
+                return res.status(200).json({ answer: "Question received and user added to chat list." });
+            } else {
+                userInfo_.lastMessage = question;
+                await userInfo_.save();
+            }
+        }
         const docs = await Knowledge.find({ userId });
-
         if (!docs.length) {
             return res.status(404).json({ answer: "No PDF content found for this user." });
         }
