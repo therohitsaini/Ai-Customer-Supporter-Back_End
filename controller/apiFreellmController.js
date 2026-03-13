@@ -9,19 +9,19 @@ export const docs = [
         id: "pricing",
         keywords: ["price", "pricing", "plan", "cost"],
         content: `
-Our Pricing Plans:
-- Basic Plan: Free
-- Pro Plan: ₹999 per month
-- Enterprise: Contact sales
-    `
+                Our Pricing Plans:
+                - Basic Plan: Free
+                - Pro Plan: ₹999 per month
+                - Enterprise: Contact sales
+                    `
     },
     {
         id: "setup",
         keywords: ["setup", "install", "how to use"],
         content: `
-Setup Guide:
-1. firstly sign up on our platform
-2. Enable chat widget from dashboard
+                Setup Guide:
+                1. firstly sign up on our platform
+                2. Enable chat widget from dashboard
     `
     }
 ];

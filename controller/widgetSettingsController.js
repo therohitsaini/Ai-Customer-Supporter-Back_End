@@ -1,3 +1,4 @@
+import { Company } from "../modal/onbordingSchema.js";
 import widgetSettingsSchema from "../modal/widgetSettingsSchema.js";
 
 
@@ -52,10 +53,8 @@ export const upsertWidgetSettings = async (req, res) => {
 
 export const getWidgetSettings = async (req, res) => {
     try {
-        const userId = req.params.userId;
-        console.log("Received request to fetch widget settings for user:", req.body, "with userId:", userId);
-        console.log("Fetching widget settings for user:", userId);
-        // console.log(req.path)
+        const { userId, domain } = req.params;
+        console.log(`Fetching widget settings for userId: ${userId} and domain: ${domain}`);
         if (!userId) {
             return res.status(400).json({
                 success: false,
@@ -63,6 +62,14 @@ export const getWidgetSettings = async (req, res) => {
             });
         }
         const settings = await widgetSettingsSchema.findOne({ userId });
+        const companies = await Company.find({ userId });
+        if (!companies.some(company => company.website === domain)) {
+            console.log(`Domain mismatch: widget domain (${settings.website}) does not match request domain (${domain})`);
+            return res.status(403).json({
+                success: false,
+                message: "Unauthorized domain"
+            });
+        }
 
         if (!settings) {
             return res.status(404).json({

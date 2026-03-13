@@ -4,6 +4,6 @@ import { upsertWidgetSettings, getWidgetSettings } from "../controller/widgetSet
 const chatWidgetRoute = express.Router();
 
 chatWidgetRoute.post("/widget-settings/:userId", upsertWidgetSettings);
-chatWidgetRoute.get("/fetch/widget-settings/:userId", getWidgetSettings);
+chatWidgetRoute.get("/fetch/widget-settings/:userId/:domain", getWidgetSettings);
 
 export default chatWidgetRoute;
