@@ -16,5 +16,5 @@ const chatListSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
-const ChatList = mongoose.model("chatList", chatListSchema);
-export default ChatList;
+const chatList = mongoose.model("chatList", chatListSchema);
+export default chatList;

@@ -5,6 +5,7 @@ import OpenAI from "openai";
 import axios from "axios";
 import dotenv from "dotenv";
 import ChatList from "../modal/chatList.js";
+import { chatHistory } from "../modal/chatHistroy.js";
 
 dotenv.config();
 
@@ -97,6 +98,26 @@ export const askQuestion = async (req, res) => {
                 }
             }
         );
+        const userInfoFind = await ChatList.findOne({ email: user });
+        console.log("User info found for chat history:", userInfoFind);
+        await chatHistory.create({
+            adminId: userId,
+            // sessionId,
+            sender: "user",
+            message: question,
+            visitorId: userInfoFind._id.toString()
+        });
+
+
+        await chatHistory.create({
+            adminId: userId,
+            // sessionId,
+            sender: "bot",
+            message: response.data.response,
+            visitorId: userInfoFind._id.toString()
+
+        });
+
         console.log("AI Response:", response.data);
         res.json({
             reply: response.data || response.data
