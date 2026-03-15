@@ -100,6 +100,7 @@ export const askQuestion = async (req, res) => {
         );
         const userInfoFind = await ChatList.findOne({ email: user });
         console.log("User info found for chat history:", userInfoFind);
+
         await chatHistory.create({
             adminId: userId,
             // sessionId,
@@ -107,7 +108,6 @@ export const askQuestion = async (req, res) => {
             message: question,
             visitorId: userInfoFind._id.toString()
         });
-
 
         await chatHistory.create({
             adminId: userId,
@@ -117,6 +117,7 @@ export const askQuestion = async (req, res) => {
             visitorId: userInfoFind._id.toString()
 
         });
+
 
         console.log("AI Response:", response.data);
         res.json({
