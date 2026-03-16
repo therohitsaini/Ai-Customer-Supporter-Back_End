@@ -54,7 +54,6 @@ export const upsertWidgetSettings = async (req, res) => {
 export const getWidgetSettings = async (req, res) => {
     try {
         const { userId, domain } = req.params;
-        console.log(`Fetching widget settings for userId: ${userId} and domain: ${domain}`);
         if (!userId) {
             return res.status(400).json({
                 success: false,
@@ -77,7 +76,6 @@ export const getWidgetSettings = async (req, res) => {
                 message: "Widget settings not found for this user"
             });
         }
-        console.log("Widget settings found:", settings);
         res.status(200).json({
             success: true,
             data: settings
