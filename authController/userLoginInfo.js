@@ -9,7 +9,7 @@ dotenv.config();
 
 export const userResgisterInfo = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, name, password } = req.body;
         console.log("User Registration Info:", email, password);
 
         if (!validateEmail(email)) {
@@ -29,7 +29,7 @@ export const userResgisterInfo = async (req, res) => {
             return res.status(400).json({ message: "Email already exists" });
         }
         const hashedPassword = await bcrypt.hash(password, 10); // In production, hash the password before saving
-        const user = new userInfo({ email, password: hashedPassword });
+        const user = new userInfo({ email, name, password: hashedPassword });
         await user.save();
         return res.status(201).json({ message: "User registered successfully", user });
 

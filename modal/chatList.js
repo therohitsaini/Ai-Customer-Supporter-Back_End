@@ -14,6 +14,10 @@ const chatListSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    isActive: {
+        type: Boolean,
+        default: true
+    }
 }, { timestamps: true });
 
 const chatList = mongoose.model("chatList", chatListSchema);

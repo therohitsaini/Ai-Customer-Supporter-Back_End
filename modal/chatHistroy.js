@@ -31,12 +31,17 @@ const chatSchema = new mongoose.Schema(
         },
 
         visitorId: {
-            type: String // track website visitor
+            type: String 
         },
 
         metadata: {
-            type: Object // optional (doc source, tokens, etc.)
+            type: Object 
+        },
+        seenBy: {
+            type: Boolean,
+            default: false
         }
+
 
     },
     { timestamps: true }

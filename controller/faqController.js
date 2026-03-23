@@ -6,6 +6,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import ChatList from "../modal/chatList.js";
 import { chatHistory } from "../modal/chatHistroy.js";
+import { getIO, getUserSockets } from "../src/socket/socketHandler.js";
 
 dotenv.config();
 
@@ -106,7 +107,8 @@ export const askQuestion = async (req, res) => {
             // sessionId,
             sender: "user",
             message: question,
-            visitorId: userInfoFind._id.toString()
+            visitorId: userInfoFind._id.toString(),
+            seenBy: false
         });
 
         await chatHistory.create({
@@ -114,12 +116,26 @@ export const askQuestion = async (req, res) => {
             // sessionId,
             sender: "bot",
             message: response.data.response,
-            visitorId: userInfoFind._id.toString()
-
+            visitorId: userInfoFind._id.toString(),
+            seenBy: false
         });
 
+        console.log("Response from FreeLLM API:", userId);
+        const io = getIO();
+        const sockets = getUserSockets(userId);
 
-        console.log("AI Response:", response.data);
+        const message = {
+            sender: "bot",
+            message: response.data.response,
+        };
+
+        if (sockets && sockets.size > 0) {
+            sockets.forEach((socketId) => {
+                console.log(`🔥 Emitting to ${socketId}`);
+                io.to(socketId).emit("new_notification", message);
+            });
+        }
+
         res.json({
             reply: response.data || response.data
         });

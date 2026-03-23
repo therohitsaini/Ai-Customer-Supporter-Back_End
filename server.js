@@ -11,9 +11,9 @@ import userInfoRoute from "./authRoute/userLoginInfoRoute.js";
 import onbordingRoute from "./routes/onbordingRoute.js";
 import chatWidgetRoute from "./routes/widgetSettingsRoute.js";
 import fqaRouter from "./routes/fqaRoute.js";
-import patnerAdminRouter from "./routes/patnerAdminRoutes.js";
+import partnerAdminRouter from "./routes/patnerAdminRoutes.js";
 import { initSocket } from "./src/socket/socketHandler.js";
-// import fqaRouter from "./routes/fqaRoute.js";
+import verifyRouter from "./routes/authRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -30,12 +30,13 @@ const server = http.createServer(app);
 
 initSocket(server);
 
+app.use("/api/auth", verifyRouter);
 app.use("/api/freellm", apiFreellm);
 app.use("/api/user", userInfoRoute);
 app.use("/api/onbording", onbordingRoute);
 app.use("/api/widget", chatWidgetRoute);
 app.use("/api/faq", fqaRouter);
-app.use("/api/patner/admin", patnerAdminRouter);
+app.use("/api/patner/admin", partnerAdminRouter);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
