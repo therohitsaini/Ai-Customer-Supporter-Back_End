@@ -190,4 +190,147 @@ export const handlePartnerAnaytics = async (req, res) => {
     }
 };
 
+export const conversationsDepthController = async (req, res) => {
+    try {
+        const { partnerId } = req.params;
+        console.log("Received partnerId:", partnerId); // Debug log
+        if (!mongoose.Types.ObjectId.isValid(partnerId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid partner ID."
+            });
+        }
+        const conversations = await chatHistory.find({ adminId: partnerId });
+        let short = 0;
+        let medium = 0;
+        let long = 0;
+        let totalMessages = 0;
 
+        conversations.forEach((chat) => {
+            const count = chat.message.length;
+
+            totalMessages += count;
+
+            if (count <= 3) short++;
+            else if (count <= 10) medium++;
+            else long++;
+        });
+
+        const avg = totalMessages / conversations.length;
+
+        res.json({
+            short,
+            medium,
+            long,
+            avg: Number(avg.toFixed(1)),
+            growth: 10 // optional (manual or calculated)
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server error" });
+    }
+
+}
+
+export const partnerActivityAnalytics = async (req, res) => {
+    try {
+        const { partnerId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(partnerId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid partner ID."
+            });
+        }
+        const days = 7;
+        const result = [];
+
+        for (let i = days - 1; i >= 0; i--) {
+            const start = new Date();
+            start.setDate(start.getDate() - i);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(start);
+            end.setHours(23, 59, 59, 999);
+
+            const count = await User.countDocuments({
+                lastActive: { $gte: start, $lte: end }
+            });
+
+            const dayName = start.toLocaleDateString("en-US", {
+                weekday: "short"
+            });
+
+            result.push({
+                day: dayName,
+                users: count
+            });
+        }
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server error" });
+    }
+}
+
+export const partnerTopUserQuestionsController = async (req, res) => {
+    try {
+        const { partnerId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(partnerId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid partner ID."
+            });
+        }
+
+        const result = await chatHistory.aggregate([
+
+            // ✅ filter by partnerId + sender
+            {
+                $match: {
+                    adminId: new mongoose.Types.ObjectId(partnerId),
+                    sender: "user"
+                }
+            },
+
+            // ✅ normalize text (lowercase)
+            {
+                $project: {
+                    message: { $toLower: "$message" }
+                }
+            },
+
+            // ✅ group by message
+            {
+                $group: {
+                    _id: "$message",
+                    count: { $sum: 1 }
+                }
+            },
+
+            // ✅ sort highest first
+            {
+                $sort: { count: -1 }
+            },
+
+            // ✅ top 3
+            {
+                $limit: 3
+            }
+
+        ]);
+
+        const formatted = result.map(item => ({
+            label: item._id,
+            value: item.count
+        }));
+
+        return res.status(200).json({
+            success: true,
+            data: formatted
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server error" });
+    }
+};

@@ -68,9 +68,12 @@ export const askQuestion = async (req, res) => {
                         lastMessage: question
                     }
                 );
+                userInfo_.lastActive = Date.now();
+                await userInfo_.save();
                 return res.status(200).json({ answer: "Question received and user added to chat list." });
             } else {
                 userInfo_.lastMessage = question;
+                userInfo_.lastActive = Date.now();
                 await userInfo_.save();
             }
         }
