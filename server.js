@@ -14,8 +14,11 @@ import fqaRouter from "./routes/fqaRoute.js";
 import partnerAdminRouter from "./routes/patnerAdminRoutes.js";
 import { initSocket } from "./src/socket/socketHandler.js";
 import verifyRouter from "./routes/authRoutes.js";
+import router from "./routes/test.js";
+import { client } from "./utiles/rediesdb.js";
 
 dotenv.config();
+client()
 connectDB();
 
 const app = express();
@@ -37,6 +40,7 @@ app.use("/api/onbording", onbordingRoute);
 app.use("/api/widget", chatWidgetRoute);
 app.use("/api/faq", fqaRouter);
 app.use("/api/patner/admin", partnerAdminRouter);
+app.use("/", router);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

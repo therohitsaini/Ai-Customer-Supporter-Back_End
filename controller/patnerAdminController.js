@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { chatHistory } from "../modal/chatHistroy.js";
 import chatList from "../modal/chatList.js";
 import { userInfo } from "../modal/userSchema.js";
+import { Company } from "../modal/onbordingSchema.js";
 
 export const getChatList = async (req, res) => {
     try {
@@ -332,5 +333,50 @@ export const partnerTopUserQuestionsController = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Server error" });
+    }
+};
+
+export const fetchPartnerDetails = async (req, res) => {
+    try {
+        const { partnerId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(partnerId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid partner ID"
+            });
+        }
+        const partnerDetails = await userInfo
+            .findById(partnerId)
+            .select("-password")
+            .lean();
+
+        if (!partnerDetails) {
+            return res.status(404).json({
+                success: false,
+                message: "Partner not found"
+            });
+        }
+
+        const partnerCompanyDetails = await Company
+            .findOne({ userId: partnerId })
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            message: "Partner details fetched successfully",
+            data: {
+                ...partnerDetails,
+                companyDetails: partnerCompanyDetails || null
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching partner details:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
     }
 };

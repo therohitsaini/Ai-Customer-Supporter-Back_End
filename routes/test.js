@@ -1,8 +1,7 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
+import express from "express";
 import test_ from "../modal/test.js";
-
-export const test = async (req, res) => {
+const router = express.Router();
+router.post("/test", async (req, res) => {
     try {
         const { name, email } = req.body;
         if (!name || !email) {
@@ -13,5 +12,6 @@ export const test = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: "Internal server error" });
     }
-}
+});
 
+export default router;
