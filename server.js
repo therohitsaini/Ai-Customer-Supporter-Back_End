@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { connectDB } from "./utiles/db.js";
+import { redisDbConnected } from "./utiles/rediesdb.js";
 import apiFreellm from "./routes/apiFreellmRoutes.js";
 import userInfoRoute from "./authRoute/userLoginInfoRoute.js";
 import onbordingRoute from "./routes/onbordingRoute.js";
@@ -15,12 +16,12 @@ import partnerAdminRouter from "./routes/patnerAdminRoutes.js";
 import { initSocket } from "./src/socket/socketHandler.js";
 import verifyRouter from "./routes/authRoutes.js";
 import router from "./routes/test.js";
-import { client } from "./utiles/rediesdb.js";
+
 
 dotenv.config();
-client()
-connectDB();
 
+connectDB();
+redisDbConnected()
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -31,7 +32,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const server = http.createServer(app);
 
-initSocket(server);
+await initSocket(server);
 
 app.use("/api/auth", verifyRouter);
 app.use("/api/freellm", apiFreellm);

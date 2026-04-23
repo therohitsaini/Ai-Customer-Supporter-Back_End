@@ -3,6 +3,10 @@ import { chatHistory } from "../modal/chatHistroy.js";
 import chatList from "../modal/chatList.js";
 import { userInfo } from "../modal/userSchema.js";
 import { Company } from "../modal/onbordingSchema.js";
+import client from "../utiles/rediesdb.js";
+
+const ANALYTICS_TTL = 300;    // 5 minutes
+const PROFILE_TTL = 3600;     // 1 hour
 
 export const getChatList = async (req, res) => {
     try {
@@ -119,6 +123,11 @@ export const getPartnerAllConversations = async (req, res) => {
 export const handlePartnerAnaytics = async (req, res) => {
     try {
         const { partnerId } = req.params;
+
+        const cacheKey = `analytics:${partnerId}`;
+        const cached = await client.get(cacheKey);
+        if (cached) return res.status(200).json({ success: true, data: JSON.parse(cached) });
+
         const today = new Date();
         const last7Days = new Date();
         last7Days.setDate(today.getDate() - 6);
@@ -181,6 +190,8 @@ export const handlePartnerAnaytics = async (req, res) => {
             });
         }
 
+        await client.setEx(cacheKey, ANALYTICS_TTL, JSON.stringify(result));
+
         res.status(200).json({
             success: true,
             data: result,
@@ -194,13 +205,14 @@ export const handlePartnerAnaytics = async (req, res) => {
 export const conversationsDepthController = async (req, res) => {
     try {
         const { partnerId } = req.params;
-        console.log("Received partnerId:", partnerId); // Debug log
         if (!mongoose.Types.ObjectId.isValid(partnerId)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid partner ID."
-            });
+            return res.status(400).json({ success: false, message: "Invalid partner ID." });
         }
+
+        const cacheKey = `conv_depth:${partnerId}`;
+        const cached = await client.get(cacheKey);
+        if (cached) return res.json(JSON.parse(cached));
+
         const conversations = await chatHistory.find({ adminId: partnerId });
         let short = 0;
         let medium = 0;
@@ -209,23 +221,18 @@ export const conversationsDepthController = async (req, res) => {
 
         conversations.forEach((chat) => {
             const count = chat.message.length;
-
             totalMessages += count;
-
             if (count <= 3) short++;
             else if (count <= 10) medium++;
             else long++;
         });
 
         const avg = totalMessages / conversations.length;
+        const result = { short, medium, long, avg: Number(avg.toFixed(1)), growth: 10 };
 
-        res.json({
-            short,
-            medium,
-            long,
-            avg: Number(avg.toFixed(1)),
-            growth: 10 // optional (manual or calculated)
-        });
+        await client.setEx(cacheKey, ANALYTICS_TTL, JSON.stringify(result));
+
+        res.json(result);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Server error" });
@@ -277,11 +284,12 @@ export const partnerTopUserQuestionsController = async (req, res) => {
         const { partnerId } = req.params;
 
         if (!mongoose.Types.ObjectId.isValid(partnerId)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid partner ID."
-            });
+            return res.status(400).json({ success: false, message: "Invalid partner ID." });
         }
+
+        const cacheKey = `top_questions:${partnerId}`;
+        const cached = await client.get(cacheKey);
+        if (cached) return res.status(200).json({ success: true, data: JSON.parse(cached) });
 
         const result = await chatHistory.aggregate([
 
@@ -325,10 +333,9 @@ export const partnerTopUserQuestionsController = async (req, res) => {
             value: item.count
         }));
 
-        return res.status(200).json({
-            success: true,
-            data: formatted
-        });
+        await client.setEx(cacheKey, ANALYTICS_TTL, JSON.stringify(formatted));
+
+        return res.status(200).json({ success: true, data: formatted });
 
     } catch (err) {
         console.error(err);
@@ -341,35 +348,24 @@ export const fetchPartnerDetails = async (req, res) => {
         const { partnerId } = req.params;
 
         if (!mongoose.Types.ObjectId.isValid(partnerId)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid partner ID"
-            });
+            return res.status(400).json({ success: false, message: "Invalid partner ID" });
         }
-        const partnerDetails = await userInfo
-            .findById(partnerId)
-            .select("-password")
-            .lean();
 
+        const cacheKey = `partner_profile:${partnerId}`;
+        const cached = await client.get(cacheKey);
+        if (cached) return res.status(200).json({ success: true, message: "Partner details fetched successfully", data: JSON.parse(cached) });
+
+        const partnerDetails = await userInfo.findById(partnerId).select("-password").lean();
         if (!partnerDetails) {
-            return res.status(404).json({
-                success: false,
-                message: "Partner not found"
-            });
+            return res.status(404).json({ success: false, message: "Partner not found" });
         }
 
-        const partnerCompanyDetails = await Company
-            .findOne({ userId: partnerId })
-            .lean();
+        const partnerCompanyDetails = await Company.findOne({ userId: partnerId }).lean();
+        const data = { ...partnerDetails, companyDetails: partnerCompanyDetails || null };
 
-        return res.status(200).json({
-            success: true,
-            message: "Partner details fetched successfully",
-            data: {
-                ...partnerDetails,
-                companyDetails: partnerCompanyDetails || null
-            }
-        });
+        await client.setEx(cacheKey, PROFILE_TTL, JSON.stringify(data));
+
+        return res.status(200).json({ success: true, message: "Partner details fetched successfully", data });
 
     } catch (error) {
         console.error("Error fetching partner details:", error);

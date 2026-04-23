@@ -1,61 +1,61 @@
 import { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { createClient } from "redis";
 import mongoose from "mongoose";
 import chatList from "../../modal/chatList.js";
+import client from "../../utiles/rediesdb.js";
 
 let io;
 
-// Map<userId, Set<socketId>>
+// In-memory fallback for single-process socket tracking
 const onlineUsers = new Map();
 
-export const initSocket = (server) => {
+const ONLINE_TTL = 86400; // 24 hours
+
+export const initSocket = async (server) => {
+    // Create a separate pub/sub client pair for the Redis adapter
+    const pubClient = client;
+    const subClient = createClient({ url: process.env.REDIS_URL || "redis://localhost:6379" });
+    await subClient.connect();
+
     io = new Server(server, {
         cors: { origin: "*" },
     });
 
+    io.adapter(createAdapter(pubClient, subClient));
+
     io.on("connection", (socket) => {
         console.log("User connected:", socket.id);
+
         socket.on("register_user", async ({ userId }) => {
             try {
                 if (!mongoose.Types.ObjectId.isValid(userId)) return;
-                console.log("Register user:", userId);
                 socket.userId = userId;
 
-                if (!onlineUsers.has(userId)) {
-                    onlineUsers.set(userId, new Set());
-                }
-
+                // Track in memory + Redis
+                if (!onlineUsers.has(userId)) onlineUsers.set(userId, new Set());
                 onlineUsers.get(userId).add(socket.id);
                 socket.join(userId);
-                
-                await chatList.findByIdAndUpdate(userId, {
-                    isActive: true,
-                });
 
+                await client.sAdd(`online:${userId}`, socket.id);
+                await client.expire(`online:${userId}`, ONLINE_TTL);
+
+                await chatList.findByIdAndUpdate(userId, { isActive: true });
             } catch (err) {
                 console.error("Register error:", err);
             }
         });
 
-        // ============================
-        // JOIN CHAT ROOM
-        // ============================
         socket.on("join_chat", ({ widgetId, visitorId }) => {
             const room = `${widgetId}_${visitorId}`;
             socket.join(room);
         });
 
-        // ============================
-        // SEND MESSAGE
-        // ============================
         socket.on("send_message", (data) => {
             const room = `${data.widgetId}_${data.visitorId}`;
-
-            // send to room (both admin + visitor)
             io.to(room).emit("receive_message", data);
 
-            // 🔥 OPTIONAL: send to all admin devices
             const sockets = onlineUsers.get(data.adminId);
-
             if (sockets) {
                 sockets.forEach((socketId) => {
                     io.to(socketId).emit("receive_message", data);
@@ -63,30 +63,26 @@ export const initSocket = (server) => {
             }
         });
 
-        // ============================
-        // DISCONNECT
-        // ============================
         socket.on("disconnect", async () => {
             console.log("User disconnected:", socket.id);
-
             const userId = socket.userId;
             if (!userId) return;
 
+            // Remove from memory
             const sockets = onlineUsers.get(userId);
-            if (!sockets) return;
+            if (sockets) {
+                sockets.delete(socket.id);
+                if (sockets.size === 0) onlineUsers.delete(userId);
+            }
 
-            // remove this socket
-            sockets.delete(socket.id);
+            // Remove from Redis
+            await client.sRem(`online:${userId}`, socket.id);
+            const remaining = await client.sCard(`online:${userId}`);
 
-            // ❗ if no sockets left → user offline
-            if (sockets.size === 0) {
-                onlineUsers.delete(userId);
-
+            if (remaining === 0) {
+                await client.del(`online:${userId}`);
                 try {
-                    await chatList.findByIdAndUpdate(userId, {
-                        isActive: false,
-                    });
-
+                    await chatList.findByIdAndUpdate(userId, { isActive: false });
                     console.log("User set offline:", userId);
                 } catch (err) {
                     console.error("Disconnect DB error:", err);
@@ -96,14 +92,8 @@ export const initSocket = (server) => {
     });
 };
 
-// ============================
-// GET IO INSTANCE
-// ============================
 export const getIO = () => io;
 
-// ============================
-// GET USER SOCKETS (multi-device)
-// ============================
 export const getUserSockets = (userId) => {
     return onlineUsers.get(userId) || new Set();
 };
