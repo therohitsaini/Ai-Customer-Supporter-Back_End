@@ -9,7 +9,7 @@ const companySchema = new mongoose.Schema({
     website: String,
     businessType: String,
     apiKey: String,
-    
+    phoneNumber:String,
     isOnboarded: {
         type: Boolean,
         default: false,

@@ -356,10 +356,12 @@ export const fetchPartnerDetails = async (req, res) => {
         if (cached) return res.status(200).json({ success: true, message: "Partner details fetched successfully", data: JSON.parse(cached) });
 
         const partnerDetails = await userInfo.findById(partnerId).select("-password").lean();
+        console.log("partnerDetails", partnerDetails)
+
         if (!partnerDetails) {
             return res.status(404).json({ success: false, message: "Partner not found" });
         }
-
+        console.log("partnerDetails", partnerDetails)
         const partnerCompanyDetails = await Company.findOne({ userId: partnerId }).lean();
         const data = { ...partnerDetails, companyDetails: partnerCompanyDetails || null };
 

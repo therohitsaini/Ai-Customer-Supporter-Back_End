@@ -3,13 +3,13 @@ import crypto from "crypto";
 
 const onBordingController = async (req, res) => {
     try {
-        const { companyName, businessType, website, userId } = req.body;
+        const { companyName, businessType, website, userId, phoneNumber } = req.body;
         console.log("Onboarding Data:", companyName, businessType, website);
         if (!companyName || !businessType || !website) {
             return res.status(400).json({ message: "All fields are required" });
         }
         const apiKey = crypto.randomBytes(24).toString("hex");
-        const newCompany = new Company({ companyName, businessType, website, userId, apiKey });
+        const newCompany = new Company({ companyName, businessType, website, userId, apiKey, phoneNumber });
         await newCompany.save();
         return res.status(201).json({ message: "Onboarding data saved successfully", company: newCompany });
 
