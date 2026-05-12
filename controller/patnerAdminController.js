@@ -378,3 +378,51 @@ export const fetchPartnerDetails = async (req, res) => {
         });
     }
 };
+
+
+// _-------------------------- update profile ------------------------------------//
+
+export const updateProfile = async (req, res) => {
+    try {
+        const { partnerId } = req.params;
+        console.log("Update profile request for partnerId:", req.headers.authorization || "No auth header");
+        const { name, email, companyName, website, contact } = req.body;
+        console.log("Update profile request:", { partnerId, name, email, companyName, website, contact });
+        if (!mongoose.Types.ObjectId.isValid(partnerId)) {
+            return res.status(400).json({ success: false, message: "Invalid partner ID" });
+        }
+        const partner = await userInfo.findById(partnerId);
+        if (!partner) {
+            return res.status(404).json({ success: false, message: "Partner not found" });
+        }
+        if (name) partner.name = name;
+        if (email) partner.email = email;
+        await partner.save();
+        let company = await Company.findOne({ userId: partnerId });
+        if (!company) {
+            company = new Company({ userId: partnerId, companyName, website, contact });
+        } else {
+            if (companyName) company.companyName = companyName;
+            if (website) company.website = website;
+            if (contact) company.contact = contact;
+        }
+        await company.save();
+
+        // Invalidate cache
+        const cacheKey = `partner_profile:${partnerId}`;
+        await client.del(cacheKey);
+        const updatedDetails = { ...partner.toObject(), companyDetails: company.toObject() };
+        await client.setEx(cacheKey, PROFILE_TTL, JSON.stringify(updatedDetails));
+        const updatedSettings = { ...updatedDetails, companyDetails: company.toObject() };
+
+        await client.setEx(cacheKey, PROFILE_TTL, JSON.stringify(updatedSettings));
+
+        return res.status(200).json({ success: true, message: "Profile updated successfully", data: updatedSettings });
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};

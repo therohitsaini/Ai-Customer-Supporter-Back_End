@@ -7,6 +7,7 @@ dotenv.config();
 export const verifyTokenMiddleware = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
+        console.log("Authorization verify hon rha hai middle ware ke sath ", authHeader);
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return res.status(401).json({ valid: false, message: "No token provided" });
         }

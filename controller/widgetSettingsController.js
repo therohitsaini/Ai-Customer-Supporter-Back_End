@@ -1,6 +1,7 @@
 import { Company } from "../modal/onbordingSchema.js";
 import widgetSettingsSchema from "../modal/widgetSettingsSchema.js";
 import client from "../utiles/rediesdb.js";
+import mongoose from "mongoose";
 
 const WIDGET_CACHE_TTL = 3600; // 1 hour
 
@@ -67,3 +68,23 @@ export const getWidgetSettings = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+export const WidgetSettingsLivePreview = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        console.log("Live preview request for userId:", userId);
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ success: false, message: "User ID is required" });
+        }
+        const settings = await widgetSettingsSchema.findOne({ userId });
+        if (!settings) {
+            return res.status(404).json({ success: false, message: "Widget settings not found for this user" });
+        }
+        console.log("Live preview settings:", settings);
+        res.status(200).json({ success: true, data: settings });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+

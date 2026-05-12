@@ -1,5 +1,5 @@
 import express from "express";
-import { conversationsDepthController, fetchPartnerDetails, getChatList, getMessages, getPartnerAllConversations, getPartnerAllUsers, getPartnerDetails, handlePartnerAnaytics, partnerTopUserQuestionsController } from "../controller/patnerAdminController.js";
+import { conversationsDepthController, fetchPartnerDetails, getChatList, getMessages, getPartnerAllConversations, getPartnerAllUsers, getPartnerDetails, handlePartnerAnaytics, partnerTopUserQuestionsController ,updateProfile} from "../controller/patnerAdminController.js";
 import { verifyTokenMiddleware } from "../middleware/authMiddleware.js";
 const partnerAdminRouter = express.Router();
 
@@ -13,6 +13,7 @@ partnerAdminRouter.get("/partner/analytics/dashboard/:partnerId", handlePartnerA
 partnerAdminRouter.get("/partner/conversations/depth/dashboard/:partnerId", conversationsDepthController)
 partnerAdminRouter.get("/partner/top/user/questions/dashboard/:partnerId", partnerTopUserQuestionsController)
 partnerAdminRouter.get("/partner/profile/details/dashboard/:partnerId", fetchPartnerDetails)
+partnerAdminRouter.put("/partner/profile/update/dashboard/:partnerId",verifyTokenMiddleware, updateProfile)
 
 
     
