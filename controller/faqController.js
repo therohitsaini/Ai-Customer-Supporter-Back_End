@@ -62,7 +62,24 @@ export const askQuestion = async (req, res) => {
                 await userInfo_.save();
             }
         }
+        const userInfoFind = await ChatList.findOne({ email: user });
 
+        await chatHistory.create({
+            adminId: userId,
+            sender: "user",
+            message: question,
+            visitorId: userInfoFind._id.toString(),
+            seenBy: false
+        });
+        const io = getIO();
+        const sockets = getUserSockets(userId);
+        if (sockets && sockets.size > 0 && question) {
+            const message = { sender: "user", message: question };
+            console.log(`Emitting new_notification to user ${userId} on sockets:`, Array.from(sockets));
+            sockets.forEach((socketId) => {
+                io.to(socketId).emit("new_notification", message);
+            });
+        }
         // Try cached knowledge base
         let contextText;
         const cachedKnowledge = await client.get(`knowledge:${userId}`);
@@ -79,11 +96,11 @@ export const askQuestion = async (req, res) => {
         }
 
         const prompt = `
-You are an AI assistant. Answer the question based on the following PDF content:
-PDF Content:
-${contextText}
-Question: ${question}
-Answer:
+                You are an AI assistant. Answer the question based on the following PDF content:
+                PDF Content:
+                ${contextText}
+                Question: ${question}
+                Answer:
         `;
 
         const response = await axios.post(
@@ -97,15 +114,7 @@ Answer:
             }
         );
 
-        const userInfoFind = await ChatList.findOne({ email: user });
 
-        await chatHistory.create({
-            adminId: userId,
-            sender: "user",
-            message: question,
-            visitorId: userInfoFind._id.toString(),
-            seenBy: false
-        });
 
         await chatHistory.create({
             adminId: userId,
@@ -115,11 +124,11 @@ Answer:
             seenBy: false
         });
 
-        const io = getIO();
-        const sockets = getUserSockets(userId);
+
         const message = { sender: "bot", message: response.data.response };
 
         if (sockets && sockets.size > 0) {
+            console.log(`Emitting new_notification to user ${userId} on sockets:`, Array.from(sockets));
             sockets.forEach((socketId) => {
                 io.to(socketId).emit("new_notification", message);
             });

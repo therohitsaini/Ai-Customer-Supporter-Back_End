@@ -385,9 +385,8 @@ export const fetchPartnerDetails = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const { partnerId } = req.params;
-        console.log("Update profile request for partnerId:", req.headers.authorization || "No auth header");
-        const { name, email, companyName, website, contact } = req.body;
-        console.log("Update profile request:", { partnerId, name, email, companyName, website, contact });
+        console.log("Update profile request for partnerId:", req.body);
+        const { name, email, companyName, website, whatsappNumber } = req.body;
         if (!mongoose.Types.ObjectId.isValid(partnerId)) {
             return res.status(400).json({ success: false, message: "Invalid partner ID" });
         }
@@ -395,16 +394,22 @@ export const updateProfile = async (req, res) => {
         if (!partner) {
             return res.status(404).json({ success: false, message: "Partner not found" });
         }
+        if (email && email !== partner.email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email cannot be updated"
+            });
+        }
         if (name) partner.name = name;
         if (email) partner.email = email;
         await partner.save();
         let company = await Company.findOne({ userId: partnerId });
         if (!company) {
-            company = new Company({ userId: partnerId, companyName, website, contact });
+            company = new Company({ userId: partnerId, companyName, website, whatsappNumber });
         } else {
             if (companyName) company.companyName = companyName;
             if (website) company.website = website;
-            if (contact) company.contact = contact;
+            if (whatsappNumber) company.whatsappNumber = whatsappNumber;
         }
         await company.save();
 
