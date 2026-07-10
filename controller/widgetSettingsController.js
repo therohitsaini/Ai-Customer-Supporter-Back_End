@@ -36,6 +36,7 @@ export const upsertWidgetSettings = async (req, res) => {
 export const getWidgetSettings = async (req, res) => {
     try {
         const { userId, domain } = req.params;
+        console.log("Fetching widget settings for userId:", userId, "and domain:", domain);
         if (!userId) {
             return res.status(400).json({ success: false, message: "User ID is required" });
         }

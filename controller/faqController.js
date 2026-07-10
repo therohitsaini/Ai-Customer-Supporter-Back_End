@@ -43,7 +43,9 @@ export const uploadPDF = async (req, res) => {
 export const askQuestion = async (req, res) => {
     try {
         const { userId } = req.params;
-        const { question, user } = req.body;
+        const { question = "tell me about self", user = "69889fa8adedd5ea31975995" } = req.body;
+        console.log("Received question:___", question, "from user:", user, "for userId:", userId);
+        console.log("Received question:", question, "from user:", user, "for userId:", userId);
 
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ answer: "Invalid user ID." });
@@ -103,17 +105,22 @@ export const askQuestion = async (req, res) => {
                 Answer:
         `;
 
-        const response = await axios.post(
-            "https://apifreellm.com/api/v1/chat",
-            { message: prompt },
-            {
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${process.env.FREELLM_API_KEY}`
-                }
-            }
-        );
-
+        // const response = await axios.post(
+        //     "https://apifreellm.com/api/v1/chat",
+        //     { message: prompt },
+        //     {
+        //         headers: {
+        //             "Content-Type": "application/json",
+        //             Authorization: `Bearer ${process.env.FREELLM_API_KEY}`
+        //         }
+        //     }
+        // );
+        const response = await axios.post("http://localhost:11434/api/generate", {
+            model: "llama3.2",
+            prompt: prompt,
+            stream: false
+        });
+        console.log("AI response:", response.data.response);
 
 
         await chatHistory.create({

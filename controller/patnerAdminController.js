@@ -400,15 +400,16 @@ export const updateProfile = async (req, res) => {
                 message: "Email cannot be updated"
             });
         }
+         const hostname = new URL(website).hostname;
         if (name) partner.name = name;
         if (email) partner.email = email;
         await partner.save();
         let company = await Company.findOne({ userId: partnerId });
         if (!company) {
-            company = new Company({ userId: partnerId, companyName, website, whatsappNumber });
+            company = new Company({ userId: partnerId, companyName, website: hostname, whatsappNumber });
         } else {
             if (companyName) company.companyName = companyName;
-            if (website) company.website = website;
+            if (website) company.website = hostname;
             if (whatsappNumber) company.whatsappNumber = whatsappNumber;
         }
         await company.save();

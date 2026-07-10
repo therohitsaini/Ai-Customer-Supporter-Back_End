@@ -3,6 +3,9 @@
     const widgetId = scriptTag.getAttribute("data-widget-id");
     const user_Info = scriptTag.getAttribute("data-user-info");
     const domain = window.location.hostname;
+    console.log("Widget ID:", widgetId);
+    console.log("User Info:", user_Info);
+    console.log("Domain:", domain);
 
     const iframe = document.createElement("iframe");
     iframe.src = `http://localhost:5173/widget/${widgetId}?user=${encodeURIComponent(user_Info)}&domain=${encodeURIComponent(domain)}`;
